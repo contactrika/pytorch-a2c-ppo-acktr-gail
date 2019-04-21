@@ -82,7 +82,7 @@ def make_vec_envs(env_name,
                   device,
                   allow_early_resets,
                   num_frame_stack=None,
-                  normalize_obs=False):
+                  normalize_obs=True):
     envs = [
         make_env(env_name, seed, i, log_dir, allow_early_resets)
         for i in range(num_processes)

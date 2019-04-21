@@ -233,7 +233,7 @@ class MLPBase(NNBase):
 class MLPBaseLong(NNBase):
     def __init__(self, num_inputs, recurrent=False, hidden_size=64):
         super(MLPBaseLong, self).__init__(recurrent, num_inputs, hidden_size)
-        nl = nn.ELU()
+        nl = nn.Tanh()  # nn.ELU()
 
         if recurrent:
             num_inputs = hidden_size

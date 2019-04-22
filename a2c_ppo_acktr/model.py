@@ -233,7 +233,7 @@ class MLPBase(NNBase):
 class MLPBaseLong(NNBase):
     def __init__(self, num_inputs, recurrent=False, hidden_size=64):
         super(MLPBaseLong, self).__init__(recurrent, num_inputs, hidden_size)
-        nl = nn.Tanh()  # nn.ELU()
+        nl = nn.ELU()
 
         if recurrent:
             num_inputs = hidden_size
@@ -249,6 +249,14 @@ class MLPBaseLong(NNBase):
             nn.Linear(hidden_size, hidden_size), nl)
 
         self.critic_linear = nn.Linear(hidden_size, 1)
+
+        def init_weights(m):
+            if type(m) == nn.Linear:
+                torch.nn.init.xavier_uniform_(m.weight)
+                m.bias.data.fill_(0.0)
+        self.actor.apply(init_weights)
+        self.critic.apply(init_weights)
+        self.critic_linear.apply(init_weights)
 
         self.train()
 

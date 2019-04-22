@@ -241,7 +241,7 @@ class MLPBaseLong(NNBase):
         self.actor = nn.Sequential(
             nn.Linear(num_inputs, hidden_size), nl,
             nn.Linear(hidden_size, hidden_size), nl,
-            nn.Linear(hidden_size, hidden_size), nl)
+            nn.Linear(hidden_size, hidden_size), nn.Tanh())  # act in [-1.0,1.0]
 
         self.critic = nn.Sequential(
             nn.Linear(num_inputs, hidden_size), nl,

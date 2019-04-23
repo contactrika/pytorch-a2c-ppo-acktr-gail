@@ -239,8 +239,8 @@ class MLPBaseLong(NNBase):
             num_inputs = hidden_size
 
         self.shared = nn.Sequential(
-            nn.Linear(num_inputs, hidden_size), nl,  # nn.Dropout(p=0.2),
-            nn.Linear(hidden_size, hidden_size), nl)
+            nn.Linear(num_inputs, hidden_size), nl,
+            nn.Linear(hidden_size, hidden_size), nl, nn.Dropout(p=0.2))
 
         self.actor = nn.Sequential(
             nn.Linear(hidden_size, hidden_size), nn.Tanh())

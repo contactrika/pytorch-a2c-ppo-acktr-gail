@@ -345,5 +345,6 @@ class MLPBaseLongTwin(NNBase):
         away = np.abs(phi_tl_minus_tgt+phi_tl_dot)-np.abs(phi_tl_minus_tgt)
         away = away.view(-1, 1)
         act_mean = torch.where(away>0, self.twin_actor(x), self.actor(x))
+        crit = torch.where(away>0, self.twin_critic(x), self.critic(x))
 
-        return self.critic(x), act_mean, rnn_hxs
+        return crit, act_mean, rnn_hxs

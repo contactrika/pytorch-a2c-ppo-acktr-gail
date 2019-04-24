@@ -233,14 +233,14 @@ class MLPBase(NNBase):
 class MLPBaseLong(NNBase):
     def __init__(self, num_inputs, recurrent=False, hidden_size=64):
         super(MLPBaseLong, self).__init__(recurrent, num_inputs, hidden_size)
-        nl = nn.ELU()
+        nl = nn.Tanh()
 
         if recurrent:
             num_inputs = hidden_size
 
         self.actor = nn.Sequential(
             nn.Linear(num_inputs, hidden_size), nl,
-            nn.Linear(hidden_size, hidden_size), nn.ELU())
+            nn.Linear(hidden_size, hidden_size), nn.Tanh())
 
         self.critic = nn.Sequential(
             nn.Linear(num_inputs, hidden_size), nl,

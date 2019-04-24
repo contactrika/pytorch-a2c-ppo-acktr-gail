@@ -239,13 +239,15 @@ class MLPBaseLong(NNBase):
             num_inputs = hidden_size
 
         self.actor = nn.Sequential(
-            nn.Linear(num_inputs, hidden_size), nl,
-            nn.Linear(hidden_size, hidden_size), nl,
+            nn.Linear(num_inputs, hidden_size), nl, nn.BatchNorm1d(hidden_size),
+            nn.Linear(hidden_size, hidden_size), nl, nn.BatchNorm1d(hidden_size),
+            nn.Linear(hidden_size, hidden_size), nl, nn.BatchNorm1d(hidden_size),
             nn.Linear(hidden_size, hidden_size), nn.Tanh())
 
         self.critic = nn.Sequential(
-            nn.Linear(num_inputs, hidden_size), nl,
-            nn.Linear(hidden_size, hidden_size), nl)
+            nn.Linear(num_inputs, hidden_size), nl, nn.BatchNorm1d(hidden_size),
+            nn.Linear(hidden_size, hidden_size), nl, nn.BatchNorm1d(hidden_size),
+            nn.Linear(hidden_size, hidden_size), nl, nn.BatchNorm1d(hidden_size))
 
         self.critic_linear = nn.Linear(hidden_size, 1)
 

@@ -35,7 +35,7 @@ class Policy(nn.Module):
             if len(obs_shape) == 3:
                 base = CNNBase
             elif len(obs_shape) == 1:
-                base = MLPBaseLongTwin # MLPBase
+                base = MLPBaseLong # MLPBase
             else:
                 raise NotImplementedError
 
@@ -245,6 +245,7 @@ class MLPBase(NNBase):
 
         return self.critic_linear(hidden_critic), hidden_actor, rnn_hxs
 
+
 class MLPBaseLong(NNBase):
     def __init__(self, num_inputs, num_act_outputs, recurrent=False, hidden_size=64):
         super(MLPBaseLong, self).__init__(recurrent, num_inputs, hidden_size)
@@ -268,7 +269,6 @@ class MLPBaseLong(NNBase):
                 torch.nn.init.xavier_uniform_(m.weight)
                 m.bias.data.fill_(0.0)
         self.actor.apply(init_weights)
-        #self.twin_actor.apply(init_weights)
         self.critic.apply(init_weights)
 
         self.train()

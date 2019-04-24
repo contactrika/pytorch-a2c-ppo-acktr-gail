@@ -239,34 +239,42 @@ class MLPBaseLong(NNBase):
             num_inputs = hidden_size
 
         self.actor = nn.Sequential(
-            nn.Linear(num_inputs, hidden_size), nl, nn.Dropout(p=0.2),
-            nn.Linear(hidden_size, hidden_size), nl, nn.Dropout(p=0.2),
+            nn.Linear(num_inputs, hidden_size), nl,
+            nn.Linear(hidden_size, hidden_size), nl,
+            nn.Linear(hidden_size, hidden_size), nn.Tanh())
+
+        self.twin_actor = nn.Sequential(
+            nn.Linear(num_inputs, hidden_size), nl,
+            nn.Linear(hidden_size, hidden_size), nl,
             nn.Linear(hidden_size, hidden_size), nn.Tanh())
 
         self.critic = nn.Sequential(
-            nn.Linear(num_inputs, hidden_size), nl, nn.Dropout(p=0.2),
-            nn.Linear(hidden_size, hidden_size), nl, nn.Dropout(p=0.2),
-            nn.Linear(hidden_size, hidden_size), nl)
-
-        self.critic_linear = nn.Linear(hidden_size, 1)
+            nn.Linear(num_inputs, hidden_size), nl,
+            nn.Linear(hidden_size, hidden_size), nl,
+            nn.Linear(hidden_size, hidden_size), nl,
+            nn.Linear(hidden_size, 1))
 
         def init_weights(m):
             if type(m) == nn.Linear:
                 torch.nn.init.xavier_uniform_(m.weight)
                 m.bias.data.fill_(0.0)
         self.actor.apply(init_weights)
+        self.twin_actor.apply(init_weights)
         self.critic.apply(init_weights)
-        self.critic_linear.apply(init_weights)
 
         self.train()
 
-    def forward(self, inputs, rnn_hxs, masks):
+    def forward(self, inputs, rnn_hxs, masks, twin_actor_masks):
         x = inputs
 
         if self.is_recurrent:
             x, rnn_hxs = self._forward_gru(x, rnn_hxs, masks)
 
-        hidden_critic = self.critic(x)
-        hidden_actor = self.actor(x)
+        act_part = self.actor(x)
+        twin_act_part = self.twin_actor(x)
+        # TODO: check that this passes only grads of net parts actually used.
+        # TODO: generalize later.
+        phi_tl_minus_tgt = x[:,0]-x[:,5]
+        act = torch.where(phi_tl_minus_tgt>0, twin_act_part, act_part)
 
-        return self.critic_linear(hidden_critic), hidden_actor, rnn_hxs
+        return self.critic(x), act, rnn_hxs

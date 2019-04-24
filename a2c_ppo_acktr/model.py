@@ -240,13 +240,10 @@ class MLPBaseLong(NNBase):
 
         self.actor = nn.Sequential(
             nn.Linear(num_inputs, hidden_size), nl,
-            nn.Linear(hidden_size, hidden_size), nl,
-            nn.Linear(hidden_size, hidden_size), nl,
             nn.Linear(hidden_size, hidden_size), nn.Tanh())
 
         self.critic = nn.Sequential(
             nn.Linear(num_inputs, hidden_size), nl,
-            nn.Linear(hidden_size, hidden_size), nl,
             nn.Linear(hidden_size, hidden_size), nl)
 
         self.critic_linear = nn.Linear(hidden_size, 1)

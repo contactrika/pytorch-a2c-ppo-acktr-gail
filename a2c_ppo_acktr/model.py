@@ -275,7 +275,6 @@ class MLPBaseLong(NNBase):
         self.actor.apply(init_weights)
         self.twin_actor.apply(init_weights)
         self.critic.apply(init_weights)
-        self.twin_critic.apply(init_weights)
 
         self.train()
 

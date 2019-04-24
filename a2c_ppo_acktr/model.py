@@ -264,7 +264,7 @@ class MLPBaseLong(NNBase):
 
         self.train()
 
-    def forward(self, inputs, rnn_hxs, masks, twin_actor_masks):
+    def forward(self, inputs, rnn_hxs, masks):
         x = inputs
 
         if self.is_recurrent:

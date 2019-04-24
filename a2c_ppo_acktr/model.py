@@ -6,6 +6,20 @@ import torch.nn.functional as F
 from a2c_ppo_acktr.distributions import Bernoulli, Categorical, DiagGaussian
 from a2c_ppo_acktr.utils import init
 
+from a2c_ppo_acktr.distributions import FixedNormal
+from a2c_ppo_acktr.utils import AddBias
+
+
+class DiagGaussianShell(nn.Module):
+    def __init__(self, num_outputs):
+        super(DiagGaussianShell, self).__init__()
+        self.logstd = AddBias(torch.zeros(num_outputs))
+
+    def forward(self, action_mean):
+        zeros = torch.zeros_like(action_mean)
+        action_logstd = self.logstd(zeros)
+        return FixedNormal(action_mean, action_logstd.exp())
+
 
 class Flatten(nn.Module):
     def forward(self, x):
@@ -25,14 +39,16 @@ class Policy(nn.Module):
             else:
                 raise NotImplementedError
 
-        self.base = base(obs_shape[0], **base_kwargs)
+        #self.base = base(obs_shape[0], **base_kwargs)
+        self.base = base(obs_shape[0], action_space.shape[0], **base_kwargs)
 
         if action_space.__class__.__name__ == "Discrete":
             num_outputs = action_space.n
             self.dist = Categorical(self.base.output_size, num_outputs)
         elif action_space.__class__.__name__ == "Box":
             num_outputs = action_space.shape[0]
-            self.dist = DiagGaussian(self.base.output_size, num_outputs)
+            #self.dist = DiagGaussian(self.base.output_size, num_outputs)
+            self.dist = DiagGaussianShell(num_outputs)
         elif action_space.__class__.__name__ == "MultiBinary":
             num_outputs = action_space.shape[0]
             self.dist = Bernoulli(self.base.output_size, num_outputs)
@@ -229,9 +245,8 @@ class MLPBase(NNBase):
 
         return self.critic_linear(hidden_critic), hidden_actor, rnn_hxs
 
-
 class MLPBaseLong(NNBase):
-    def __init__(self, num_inputs, recurrent=False, hidden_size=64):
+    def __init__(self, num_inputs, num_act_outputs, recurrent=False, hidden_size=64):
         super(MLPBaseLong, self).__init__(recurrent, num_inputs, hidden_size)
         nl = nn.Tanh()
 
@@ -241,12 +256,12 @@ class MLPBaseLong(NNBase):
         self.actor = nn.Sequential(
             nn.Linear(num_inputs, hidden_size), nl,
             nn.Linear(hidden_size, hidden_size), nl,
-            nn.Linear(hidden_size, hidden_size), nn.Tanh())
+            nn.Linear(hidden_size, num_act_outputs))
 
         self.twin_actor = nn.Sequential(
             nn.Linear(num_inputs, hidden_size), nl,
             nn.Linear(hidden_size, hidden_size), nl,
-            nn.Linear(hidden_size, hidden_size), nn.Tanh())
+            nn.Linear(hidden_size, num_act_outputs))
 
         self.critic = nn.Sequential(
             nn.Linear(num_inputs, hidden_size), nl,
@@ -274,8 +289,7 @@ class MLPBaseLong(NNBase):
         twin_act_part = self.twin_actor(x)
         # TODO: check that this passes only grads of net parts actually used.
         # TODO: generalize later.
-        phi_tl_minus_tgt = x[:,0]-x[:,5]
-        print('x.size()',x.size())
-        act = torch.where(phi_tl_minus_tgt>0, twin_act_part, act_part)
+        phi_tl_minus_tgt = (x[:,0]-x[:,5]).view(-1, 1)
+        act_mean = torch.where(phi_tl_minus_tgt>0, twin_act_part, act_part)
 
-        return self.critic(x), act, rnn_hxs
+        return self.critic(x), act_mean, rnn_hxs

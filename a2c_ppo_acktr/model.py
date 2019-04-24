@@ -253,22 +253,17 @@ class MLPBaseLong(NNBase):
         if recurrent:
             num_inputs = hidden_size
 
-        self.actor = nn.Sequential(
+        self.actor_base = nn.Sequential(
             nn.Linear(num_inputs, hidden_size), nl,
-            nn.Linear(hidden_size, hidden_size), nl,
+            nn.Linear(hidden_size, hidden_size), nl)
+
+        self.actor = nn.Sequential(
             nn.Linear(hidden_size, num_act_outputs))
 
         self.twin_actor = nn.Sequential(
-            nn.Linear(num_inputs, hidden_size), nl,
-            nn.Linear(hidden_size, hidden_size), nl,
             nn.Linear(hidden_size, num_act_outputs))
 
         self.critic = nn.Sequential(
-            nn.Linear(num_inputs, hidden_size), nl,
-            nn.Linear(hidden_size, hidden_size), nl,
-            nn.Linear(hidden_size, 1))
-
-        self.twin_critic = nn.Sequential(
             nn.Linear(num_inputs, hidden_size), nl,
             nn.Linear(hidden_size, hidden_size), nl,
             nn.Linear(hidden_size, 1))
@@ -290,10 +285,11 @@ class MLPBaseLong(NNBase):
         if self.is_recurrent:
             x, rnn_hxs = self._forward_gru(x, rnn_hxs, masks)
 
+        act_base = self.actor_base(x)
         # TODO: check that this passes only grads of net parts actually used.
         # TODO: generalize later.
         phi_tl_minus_tgt = (x[:,0]-x[:,5]).view(-1, 1)
-        act_mean = torch.where(phi_tl_minus_tgt>0, self.twin_actor(x), self.actor(x))
-        crit = torch.where(phi_tl_minus_tgt>0, self.twin_critic(x), self.critic(x))
+        act_mean = torch.where(phi_tl_minus_tgt>0,
+                               self.twin_actor(act_base), self.actor(act_base))
 
-        return crit, act_mean, rnn_hxs
+        return self.critic(x), act_mean, rnn_hxs

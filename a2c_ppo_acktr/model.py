@@ -35,7 +35,7 @@ class Policy(nn.Module):
             if len(obs_shape) == 3:
                 base = CNNBase
             elif len(obs_shape) == 1:
-                base = MLPBaseLong # MLPBase
+                base = MLPBaseLongTwin # MLPBase
             else:
                 raise NotImplementedError
 
@@ -253,14 +253,6 @@ class MLPBaseLong(NNBase):
         if recurrent:
             num_inputs = hidden_size
 
-        #self.actor_base = nn.Sequential(
-        #    nn.Linear(num_inputs, hidden_size), nl,
-        #    nn.Linear(hidden_size, hidden_size), nl)
-        #self.actor = nn.Sequential(
-        #    nn.Linear(hidden_size, num_act_outputs))
-        #self.twin_actor = nn.Sequential(
-        #    nn.Linear(hidden_size, num_act_outputs))
-
         self.actor = nn.Sequential(
             nn.Linear(num_inputs, hidden_size), nl,
             nn.Linear(hidden_size, hidden_size), nl,
@@ -287,11 +279,71 @@ class MLPBaseLong(NNBase):
         if self.is_recurrent:
             x, rnn_hxs = self._forward_gru(x, rnn_hxs, masks)
 
+        return self.critic(x), self.actor(x), rnn_hxs
+
+
+class MLPBaseLongTwin(NNBase):
+    def __init__(self, num_inputs, num_act_outputs, recurrent=False, hidden_size=64):
+        super(MLPBaseLongTwin, self).__init__(recurrent, num_inputs, hidden_size)
+        nl = nn.Tanh()
+
+        if recurrent:
+            num_inputs = hidden_size
+
+        #self.actor_base = nn.Sequential(
+        #    nn.Linear(num_inputs, hidden_size), nl,
+        #    nn.Linear(hidden_size, hidden_size), nl)
+        #self.actor = nn.Sequential(
+        #    nn.Linear(hidden_size, num_act_outputs))
+        #self.twin_actor = nn.Sequential(
+        #    nn.Linear(hidden_size, num_act_outputs))
+
+        self.actor = nn.Sequential(
+            nn.Linear(num_inputs, hidden_size), nl,
+            nn.Linear(hidden_size, hidden_size), nl,
+            nn.Linear(hidden_size, num_act_outputs))
+
+        self.twin_actor = nn.Sequential(
+            nn.Linear(num_inputs, hidden_size), nl,
+            nn.Linear(hidden_size, hidden_size), nl,
+            nn.Linear(hidden_size, num_act_outputs))
+
+        self.critic = nn.Sequential(
+            nn.Linear(num_inputs, hidden_size), nl,
+            nn.Linear(hidden_size, hidden_size), nl,
+            nn.Linear(hidden_size, 1))
+
+        self.twin_critic = nn.Sequential(
+            nn.Linear(num_inputs, hidden_size), nl,
+            nn.Linear(hidden_size, hidden_size), nl,
+            nn.Linear(hidden_size, 1))
+
+        def init_weights(m):
+            if type(m) == nn.Linear:
+                torch.nn.init.xavier_uniform_(m.weight)
+                m.bias.data.fill_(0.0)
+        #self.actor_base.apply(init_weights)
+        self.actor.apply(init_weights)
+        self.twin_actor.apply(init_weights)
+        self.critic.apply(init_weights)
+        self.twin_critic.apply(init_weights)
+
+        self.train()
+
+    def forward(self, inputs, rnn_hxs, masks):
+        x = inputs
+
+        if self.is_recurrent:
+            x, rnn_hxs = self._forward_gru(x, rnn_hxs, masks)
+
         # TODO: check that this passes only grads of net parts actually used.
         # TODO: generalize later.
         #act_base = self.actor_base(x)
-        #phi_tl_minus_tgt = (x[:,0]-x[:,5]).view(-1, 1)
-        #act_mean = torch.where(phi_tl_minus_tgt>0,
-        #                       self.twin_actor(act_base), self.actor(act_base))
+        phi_tl_minus_tgt = (x[:,0]-x[:,5])
+        phi_tl_dot = x[:,1]
+        # Determine whether the tool is moving away from tgt.
+        away = np.abs(phi_tl_minus_tgt+phi_tl_dot)-np.abs(phi_tl_minus_tgt)
+        away = away.view(-1, 1)
+        act_mean = torch.where(away>0, self.twin_actor(x), self.actor(x))
 
-        return self.critic(x), self.actor(x), rnn_hxs
+        return self.critic(x), act_mean, rnn_hxs

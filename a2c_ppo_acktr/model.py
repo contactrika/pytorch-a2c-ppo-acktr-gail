@@ -342,7 +342,7 @@ class MLPBaseLongTwin(NNBase):
         phi_tl_minus_tgt = (x[:,0]-x[:,5])
         phi_tl_dot = x[:,1]
         # Determine whether the tool is moving away from tgt.
-        away = np.abs(phi_tl_minus_tgt+phi_tl_dot)-np.abs(phi_tl_minus_tgt)
+        away = torch.abs(phi_tl_minus_tgt+phi_tl_dot)-torch.abs(phi_tl_minus_tgt)
         away = away.view(-1, 1)
         act_mean = torch.where(away>0, self.twin_actor(x), self.actor(x))
         crit = torch.where(away>0, self.twin_critic(x), self.critic(x))

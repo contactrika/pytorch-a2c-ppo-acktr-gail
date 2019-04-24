@@ -275,6 +275,7 @@ class MLPBaseLong(NNBase):
         # TODO: check that this passes only grads of net parts actually used.
         # TODO: generalize later.
         phi_tl_minus_tgt = x[:,0]-x[:,5]
+        print('x.size()',x.size())
         act = torch.where(phi_tl_minus_tgt>0, twin_act_part, act_part)
 
         return self.critic(x), act, rnn_hxs
